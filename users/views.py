@@ -3,9 +3,12 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSignupSerializer, UserLoginSerializer, EmailCheckSerializer
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
+
 
 class UserSignupView(generics.CreateAPIView):
+    permission_classes = [AllowAny]
+
     serializer_class = UserSignupSerializer
 
     def create(self, request, *args, **kwargs):
@@ -26,6 +29,8 @@ class UserSignupView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 class UserLoginView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+
     serializer_class = UserLoginSerializer
 
     def post(self, request, *args, **kwargs):
@@ -41,8 +46,6 @@ class UserLoginView(generics.GenericAPIView):
         })
 
 class UserLogoutView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
-
     def post(self, request, *args, **kwargs):
         try:
             refresh_token = request.data.get("refresh")
@@ -70,7 +73,8 @@ class UserLogoutView(generics.GenericAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class EmailCheckView(generics.GenericAPIView):
-    """이메일 중복 확인 API"""
+    permission_classes = [AllowAny]
+
     serializer_class = EmailCheckSerializer
 
     def post(self, request, *args, **kwargs):
