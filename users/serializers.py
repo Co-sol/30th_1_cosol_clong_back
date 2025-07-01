@@ -7,14 +7,15 @@ class UserSignupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('email', 'name', 'password')
+        fields = ('email', 'name', 'password', 'clean_sense')
         read_only_fields = ['id', 'clean_type_created_at']
 
     def create(self, validated_data):
         user = User.objects.create_user(
             email=validated_data['email'],
             name=validated_data['name'],
-            password=validated_data['password']
+            password=validated_data['password'],
+            clean_sense=validated_data['clean_sense'],
         )
         return user
 
@@ -26,12 +27,12 @@ class UserLoginSerializer(serializers.Serializer):
         email = attrs.get('email')
         password = attrs.get('password')
 
-        user = authenticate(username=email, password=password)  # username 파라미터에 email 전달
+        user = authenticate(username=email, password=password)
         if not user:
-            raise serializers.ValidationError('이메일 또는 비밀번호가 올바르지 않습니다.')
+            raise serializers.ValidationError("이메일 또는 비밀번호가 올바르지 않습니다.")
 
         if not user.is_active:
-            raise serializers.ValidationError('비활성화된 계정입니다.')
+            raise serializers.ValidationError("비활성화된 계정입니다.")
 
         attrs['user'] = user
         return attrs
