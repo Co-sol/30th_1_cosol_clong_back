@@ -1,7 +1,9 @@
+from django.contrib.auth.models import User
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework_simplejwt import serializers
 from .serializers import UserInfoSerializer
+from django.contrib.auth import get_user_model
 
 # Create your views here.
 class UserInfoView(generics.GenericAPIView):
@@ -54,3 +56,28 @@ class UserInfoView(generics.GenericAPIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class UserWithdrawView(generics.GenericAPIView):
+    User = get_user_model
+
+    def post(self, request):
+        try:
+            user = request.user
+
+            if not user or not user.is_active:
+                return Response({
+                    'success': False,
+                    'message': '유효하지 않은 사용자입니다.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            user.delete()
+
+            return Response({
+                'success': True,
+                'message': '회원 탈퇴가 완료되었습니다.'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': '회원 탈퇴 중 오류가 발생했습니다.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
