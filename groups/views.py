@@ -51,4 +51,33 @@ class CheckUserView(GenericAPIView):
         )
 
 
+# 그룹 새성 API
+class GroupCreateView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GroupCreateSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+            group = serializer.save()
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "그룹 생성이 완료되었습니다.",
+                    "data": {"groupId": group.group_id},
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        except serializers.ValidationError as e:
+            return Response(
+                {
+                    "success": False,
+                    "errorCode": "MISSING_REQUIRED_FIELDS",
+                    "message": "그룹명을 입력해주세요.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
