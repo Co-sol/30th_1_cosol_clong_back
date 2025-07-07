@@ -1,9 +1,10 @@
 from django.db import models
+from users.models import User
 
 class Space(models.Model):
-    space_parent_id = models.ForeignKey('self',null=True,blank=True, n_delete=models.CASCADE)
+    space_parent_id = models.ForeignKey('self',null=True,blank=True, on_delete=models.CASCADE)
     #group.id = models.ForeignKey(Group, on_delete=models.CASCADE)
-    space_name = models.CharField()
+    space_name = models.CharField(max_length=255)
     space_type = models.IntegerField()
 
     def __str__(self):
@@ -24,16 +25,16 @@ class Checklist(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)   
     checklist_count = models.IntegerField()
     def __str__(self):
-        return self.item
+        return str(self.item)
 
 class Checklistitem(models.Model):
-     STATUS_CHOICES = (
+    STATUS_CHOICES = (
         (0, '미완료'),
         (1, '기한 내 완료'),
         (2, '마감 기한 지남'),
     )
-    checklist = models.ForeignKey(checklist, on_delete=models.CASCADE)  
-    user = models.ForeignKey(users.User, to_field='email', on_delete=models.CASCADE)
+    checklist = models.ForeignKey(Checklist, on_delete=models.CASCADE)  
+    user = models.ForeignKey(User, to_field='email', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     due_date = models.DateTimeField(null=True, blank=True)  # 마감 기한
     complete_date = models.DateTimeField(null=True, blank=True) # 완료 날짜

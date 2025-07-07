@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "users",
     "mypage",
-    "checklist",
+    "checklists",
 ]
 
 REST_FRAMEWORK = {

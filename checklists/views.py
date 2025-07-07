@@ -14,23 +14,21 @@ from datetime import date
 
 class Checklist_Group_View(APIView):  #조회(그룹)
     def get(self, request, space):
-        try:
-            update_status()  # 마감 상태 자동 갱신
-            if not Space.objects.filter(id=space).exists():
-                return Response({'error': 'Space not found'}, status=status.HTTP_404_NOT_FOUND)
-            checklists = Checklist.objects.filter(space_id=space, item__isnull=True)
-            serializer = Checklist_view_Serializer(checklists,many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        update_status()  # 마감 상태 자동 갱신
+        if not Space.objects.filter(id=space).exists():
+            return Response({'error': 'Space not found'}, status=status.HTTP_404_NOT_FOUND)
+        checklists = Checklist.objects.filter(space_id=space, item__isnull=True)
+        serializer = Checklist_view_Serializer(checklists,many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 class Checklist_Item_View(APIView):  #조회(개인)
     def get(self, request, item):
-        try:
-            update_status()  # 마감 상태 자동 갱신
-            if not Item.objects.filter(id=item).exists():
-                return Response({'error': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
-            checklists = Checklist.objects.filter(item_id=item)
-            serializer = Checklist_view_Serializer(checklists,many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        update_status()  # 마감 상태 자동 갱신
+        if not Item.objects.filter(id=item).exists():
+            return Response({'error': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
+        checklists = Checklist.objects.filter(item_id=item)
+        serializer = Checklist_view_Serializer(checklists,many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class Checklist_Create_View(APIView): # 생성
     def post(self, request):

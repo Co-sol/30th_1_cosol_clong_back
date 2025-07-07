@@ -1,9 +1,10 @@
 from rest_framework import serializers
-from .models import Item,Checklistitem,Space
+from .models import Item,Checklistitem,Space, Checklist
+from users.models import User
 
 class UserSerializer(serializers.ModelSerializer):  # user 정보
     class Meta:
-        model = users.User  # User 모델 가져오기
+        model = User  # User 모델 가져오기
         fields = ['email','profile']
 
 class SpaceSerializer(serializers.ModelSerializer):  # 공간 정보
