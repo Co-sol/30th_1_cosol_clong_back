@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "clong",
+            "database": "clong",
+            "username": "postgres",
+            "password": "guswlsl"
+        }
+    ]
+}

@@ -23,4 +23,5 @@ urlpatterns = [
     path("api/users/", include("users.urls")),
     path("api/groups/", include("groups.urls")),
     path("api/mypage/", include("mypage.urls")),
+    path("api/spaces/", include("spaces.urls")),
 ]
