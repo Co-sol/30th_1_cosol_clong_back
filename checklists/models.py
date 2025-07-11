@@ -1,25 +1,7 @@
 from django.db import models
 from users.models import User
+from spaces.models import Space, Item
 
-class Space(models.Model):
-    space_parent_id = models.ForeignKey('self',null=True,blank=True, on_delete=models.CASCADE)
-    #group.id = models.ForeignKey(Group, on_delete=models.CASCADE)
-    space_name = models.CharField(max_length=255)
-    space_type = models.IntegerField()
-
-    def __str__(self):
-        return self.space_name
-
-class Item(models.Model):
-    space = models.ForeignKey(Space, on_delete=models.CASCADE)
-    item_name = models.CharField(max_length=255)
-    start_x = models.IntegerField()
-    start_y = models.IntegerField()
-    end_x = models.IntegerField()
-    end_y = models.IntegerField()
-
-    def __str__(self):
-        return self.item_name
 
 class Checklist(models.Model):  
     item = models.ForeignKey(Item, on_delete=models.CASCADE)   
@@ -42,6 +24,3 @@ class Checklistitem(models.Model):
 
     def __str__(self):
         return self.title
-
-
-    
