@@ -24,4 +24,5 @@ urlpatterns = [
     path("api/groups/", include("groups.urls")),
     path("api/mypage/", include("mypage.urls")),
     path("api/spaces/", include("spaces.urls")),
+    path("api/chatbot/", include("chatbot.urls"))
 ]
