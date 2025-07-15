@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import CheckUserView, GroupCreateView
+from .views import CheckUserView, GroupCreateView, GroupInfoView
 
 urlpatterns = [
     path("check-user/<str:email>/", CheckUserView.as_view(), name="check_user"),
     path("create/", GroupCreateView.as_view(), name="create_group"),
+    path("<int:group_id>/group-info/", GroupInfoView.as_view(), name="group_info"),
 ]

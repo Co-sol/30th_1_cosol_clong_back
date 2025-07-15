@@ -1,5 +1,9 @@
+from dataclasses import field, fields
+from pyexpat import model
 from rest_framework import serializers
 from users.models import User
+from groups.models import Group
+from spaces.models import Space, Item
 from .models import Group
 
 
@@ -53,3 +57,42 @@ class GroupCreateSerializer(serializers.ModelSerializer):
             user.group = group
             user.save()
         return group
+
+
+class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = [
+            "item_id",
+            "item_name",
+            "start_x",
+            "start_y",
+            "width",
+            "height",
+            "parent_space_id",
+        ]
+
+
+class SpaceSerializer(serializers.ModelSerializer):
+    items = ItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Space
+        fields = [
+            "space_id",
+            "space_name",
+            "space_type",
+            "start_x",
+            "start_y",
+            "width",
+            "height",
+            "items",
+        ]
+
+
+class GroupInfoSeriazlier(serializers.ModelSerializer):
+    spaces = SpaceSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Group
+        fields = ["group_name", "group_rule", "spaces"]

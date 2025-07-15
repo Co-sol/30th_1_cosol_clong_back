@@ -1,8 +1,8 @@
 from rest_framework import status, serializers
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.generics import GenericAPIView
-from .serializers import CheckUserSerializer, GroupCreateSerializer
+from .serializers import CheckUserSerializer, GroupCreateSerializer, GroupInfoSeriazlier
 from .models import Group
 from users.models import User
 
@@ -81,3 +81,31 @@ class GroupCreateView(GenericAPIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class GroupInfoView(GenericAPIView):
+    serializer_class = GroupInfoSeriazlier
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, group_id):
+        try:
+            group = Group.objects.get(pk=group_id)
+        except Group.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "errorCode": "GROUP_NOT_FOUND",
+                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = self.get_serializer(group).data
+        return Response(
+            {
+                "success": True,
+                "message": "그룹 정보 조회에 성공했습니다.",
+                "data": data,
+            },
+            status=status.HTTP_200_OK,
+        )
