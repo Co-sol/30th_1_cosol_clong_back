@@ -6,6 +6,7 @@ from .serializers import (
     CheckUserSerializer,
     GroupCreateSerializer,
     GroupInfoSeriazlier,
+    GroupMemberSerializer,
     GroupUpdateSerializer,
 )
 from .models import Group
@@ -146,6 +147,33 @@ class GroupUpdateView(UpdateAPIView):
             {
                 "success": True,
                 "message": "그룹 정보 수정에 성공하였습니다.",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class GroupMemberInfoView(GenericAPIView):
+    def get(self, request, group_id):
+        try:
+            group = Group.objects.get(pk=group_id)
+        except Group.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "errorCode": "GROUP_NOT_FOUND",
+                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        users = User.objects.filter(group=group)
+        serializer = GroupMemberSerializer(users, many=True)
+
+        return Response(
+            {
+                "success": True,
+                "message": "그룹원 정보 조회에 성공하였습니다.",
                 "data": serializer.data,
             },
             status=status.HTTP_200_OK,

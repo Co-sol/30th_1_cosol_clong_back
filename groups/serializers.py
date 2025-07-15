@@ -1,6 +1,7 @@
 from dataclasses import field, fields
 from pyexpat import model
 from rest_framework import serializers
+from checklists.models import Checklist, Checklistitem
 from users.models import User
 from groups.models import Group
 from spaces.models import Space, Item
@@ -90,6 +91,12 @@ class SpaceSerializer(serializers.ModelSerializer):
         ]
 
 
+class ChecklistItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Checklistitem
+        fields = ["title", "due_date", "status"]
+
+
 class GroupInfoSeriazlier(serializers.ModelSerializer):
     spaces = SpaceSerializer(many=True, read_only=True)
 
@@ -139,3 +146,24 @@ class GroupUpdateSerializer(serializers.ModelSerializer):
                 user.save()
 
         return instance
+
+
+class GroupMemberSerializer(serializers.ModelSerializer):
+    checklists = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "email",
+            "name",
+            "clean_sense",
+            "clean_type",
+            "profile",
+            "evaluation_status",
+            "clean_type_created_at",
+            "checklists",
+        ]
+
+    def get_checklists(self, user):
+        checklistitems = Checklistitem.objects.filter(user=user, status=0)
+        return ChecklistItemSerializer(checklistitems, many=True).data
