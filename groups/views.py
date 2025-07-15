@@ -1,8 +1,13 @@
 from rest_framework import status, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.generics import GenericAPIView
-from .serializers import CheckUserSerializer, GroupCreateSerializer, GroupInfoSeriazlier
+from rest_framework.generics import GenericAPIView, UpdateAPIView
+from .serializers import (
+    CheckUserSerializer,
+    GroupCreateSerializer,
+    GroupInfoSeriazlier,
+    GroupUpdateSerializer,
+)
 from .models import Group
 from users.models import User
 
@@ -106,6 +111,42 @@ class GroupInfoView(GenericAPIView):
                 "success": True,
                 "message": "그룹 정보 조회에 성공했습니다.",
                 "data": data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class GroupUpdateView(UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GroupUpdateSerializer
+    lookup_url_kwarg = "group_id"
+
+    def get_queryset(self):
+        return Group.objects.all()
+
+    def patch(self, request, *args, **kwargs):
+        group_id = self.kwargs.get("group_id")
+        try:
+            group = Group.objects.get(pk=group_id)
+        except Group.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "errorCode": "GROUP_NOT_FOUND",
+                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = self.get_serializer(group, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(
+            {
+                "success": True,
+                "message": "그룹 정보 수정에 성공하였습니다.",
+                "data": serializer.data,
             },
             status=status.HTTP_200_OK,
         )

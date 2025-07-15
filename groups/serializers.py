@@ -96,3 +96,46 @@ class GroupInfoSeriazlier(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = ["group_name", "group_rule", "spaces"]
+
+
+class GroupUpdateSerializer(serializers.ModelSerializer):
+    members = serializers.ListField(
+        child=serializers.EmailField(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = Group
+        fields = ["group_name", "group_rule", "members"]
+
+    def validate_members(self, emails):
+        for email in emails:
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"존재하지 않는 사용자입니다: {email}"
+                )
+            if user.group and user.group != self.instance:
+                raise serializers.ValidationError(
+                    f"이미 다른 그룹에 속한 사용자입니다: {email}"
+                )
+        return emails
+
+    def update(self, instance, validated_data):
+        instance.group_name = validated_data.get("group_name", instance.group_name)
+        instance.group_rule = validated_data.get("group_rule", instance.group_rule)
+        instance.save()
+
+        member_emails = validated_data.get("members")
+        if member_emails is not None:
+            users = User.objects.filter(email__in=member_emails)
+
+            for user in instance.members.all():
+                user.group = None
+                user.save()
+
+            for user in users:
+                user.group = instance
+                user.save()
+
+        return instance
