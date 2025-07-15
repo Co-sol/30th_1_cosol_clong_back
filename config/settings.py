@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "users",
     "groups",
     "mypage",
+    "checklists",
     "spaces",
 ]
 
