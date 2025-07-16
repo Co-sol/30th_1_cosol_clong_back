@@ -25,4 +25,5 @@ urlpatterns = [
     path('api/checklists/', include('checklists.urls')),
     path("api/groups/", include("groups.urls")),
     path("api/spaces/", include("spaces.urls")),
+    path("api/chatbot/", include("chatbot.urls"))
 ]
