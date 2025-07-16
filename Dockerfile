@@ -10,4 +10,5 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 COPY . .
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+#CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "clong_back.wsgi:application", "--bind", "0.0.0.0:8000"]
