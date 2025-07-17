@@ -22,6 +22,7 @@ class Checklistitem(models.Model):
     due_date = models.DateTimeField()  # 마감 기한
     complete_at = models.DateTimeField(null=True, blank=True) # 완료 날짜
     status = models.IntegerField(choices=STATUS_CHOICES, default=0) 
+    unit_item = models.CharField(max_length=255)
     checklist_id = models.ForeignKey(Checklist, on_delete=models.CASCADE) 
     email = models.ForeignKey(User, on_delete=models.CASCADE) 
    
