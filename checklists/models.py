@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import User
-from spaces.models import Space, Item
+from spaces.models import Space
 
 
 class Checklist(models.Model):  
@@ -8,8 +8,9 @@ class Checklist(models.Model):
     total_count = models.IntegerField()
     completed_count = models.IntegerField()
     space_id = models.ForeignKey(Space, on_delete=models.CASCADE)
+
     def __str__(self):
-        return self.space_id
+        return self.space_id.space_name
 
 class Checklistitem(models.Model):
     STATUS_CHOICES = (
@@ -23,7 +24,7 @@ class Checklistitem(models.Model):
     complete_at = models.DateTimeField(null=True, blank=True) # 완료 날짜
     status = models.IntegerField(choices=STATUS_CHOICES, default=0) 
     unit_item = models.CharField(max_length=255)
-    checklist_id = models.ForeignKey(Checklist, on_delete=models.CASCADE) 
+    checklist_id = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name="checklistitems") 
     email = models.ForeignKey(User, on_delete=models.CASCADE) 
    
     def __str__(self):
