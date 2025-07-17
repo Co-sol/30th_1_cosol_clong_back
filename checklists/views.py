@@ -1,103 +1,225 @@
-from django.shortcuts import render
-from django.shortcuts import get_object_or_404
-from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import status
+from django.shortcuts import get_object_or_404
 from .models import Checklist,Checklistitem
-from spaces.models import Space, Item
-from .serializers import (
-    Checklist_complete_Serializer,
-    ChecklistSerializer,
-    ChecklistItemCreateSerializer,
-    Checklist_view_Serializer
+from spaces.models import Space
+from .serializers import ( 
+    Checklist_view_Serializer, 
+    ChecklistCreateSerializer,
+    ChecklistitemSerializer,
+    Checklist_complete_Serializer
 )
-from datetime import date, datetime
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Count, F
+#from datetime import datetime
+from django.utils import timezone
+from django.db.models import Count
 
-
-class Checklist_Group_View(APIView):  #조회(그룹)
-    permission_classes = [IsAuthenticated]  #jwt 인증
-
-    def get(self, request, space):
-        update_status()  # 마감 상태 자동 갱신
-        if not Space.objects.filter(space_id=space).exists():
-            return Response({'error': 'Space not found'}, status=status.HTTP_404_NOT_FOUND)
-        checklists = Checklist.objects.filter(item__parent_space_id=space)
-        serializer = Checklist_view_Serializer(checklists,many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-class Checklist_Item_View(APIView):  #조회(개인)
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, item):
-        update_status()  # 마감 상태 자동 갱신
-        if not Item.objects.filter(item_id=item).exists():
-            return Response({'error': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
-        checklists = Checklist.objects.filter(item_id=item)
-        serializer = Checklist_view_Serializer(checklists,many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-class Checklist_Create_View(APIView): # 생성
-    permission_classes = [IsAuthenticated]
+class ChecklistCreateView(APIView):  # 생성
+    permission_classes = [IsAuthenticated]  # 토큰 인증
 
     def post(self, request):
-        serializer = ChecklistItemCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        update_expired_items()  # 자동 마감 기한 처리
+        serializer = ChecklistCreateSerializer(data=request.data)
 
-class Checklist_Delete_View(APIView):  # 삭제
-    permission_classes = [IsAuthenticated]
-
-    def delete(self,request,pk):
-        checklist = get_object_or_404(Checklistitem, pk=pk)
-        checklist.delete()
-        return Response({"message":"삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
-
-class Complete_Checklist_View(APIView): # 체크리스트 완료 처리
-    permission_classes = [IsAuthenticated]
-
-    def patch(self,request,pk):
-        checklist = get_object_or_404(Checklistitem, pk=pk)
-        status_val = request.data.get('status')
+        if not serializer.is_valid():  # 입력값 오류
+            return Response({
+                "success": False,
+                "errorCode": "MISSING_REQUIRED_FIELDS",
+                "message": f"title, due_date, checklist_id는 필수입니다."
+            }, status=status.HTTP_400_BAD_REQUEST)
         
-        if status_val not in [0,1,2]:
-            return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
+        checklist_id = serializer.validated_data['checklist_id']
+        user = serializer.validated_data['email']
+
+        # 체크리스트 존재 확인
+        checklist = Checklist.objects.filter(pk=checklist_id.pk).first()
+        if not checklist:
+            return Response({
+                "success": False,
+                "errorCode": "CHECKLIST_NOT_FOUND",
+                "message": f"해당 checklist_id를 찾을 수 없습니다."
+            }, status=status.HTTP_404_NOT_FOUND)
         
-        checklist.status = status_val
+        # 사용자 존재 확인
+        if request.user != user:
+            return Response({
+                "success": False,
+                "errorCode": "USER_NOT_FOUND",
+                "message": f"해당 사용자를 찾을 수 없습니다."
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 체크리스트 항목 생성
+        checklist_item = Checklistitem.objects.create(
+            checklist_id = checklist,
+            email=user, 
+            title=serializer.validated_data['title'],
+            due_date=serializer.validated_data['due_date'],
+            unit_item=serializer.validated_data['unit_item']
+        )
+
+        # total_count 증가
+        checklist.total_count += 1
         checklist.save()
-        return Response({"id": checklist.id, "status": checklist.status}, status=200)
 
-class TopChecklistSpacesView(APIView):  
+        response_serializer = ChecklistitemSerializer(checklist_item)
+        
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": f"체크리스트 항목이 성공적으로 생성되었습니다.",
+            "data": response_serializer.data
+        }, status=status.HTTP_200_OK)
+
+class ChecklistSpaceView(APIView):  # 조회
+    permission_classes = [IsAuthenticated]  # 토큰 인증
+
+    def get(self, request, space_id):
+        update_expired_items()  # 자동 마감 기한 처리
+        # 공간 존재 여부 확인 
+        space = Space.objects.filter(id=space_id).first()
+        if not space:
+            return Response({
+                "success": False,
+                "errorCode": "SPACE_NOT_FOUND",
+                "message": f"해당 공간을 찾을 수 없습니다: space_id={space_id}"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 해당 공간의 체크리스트 가져오기
+        checklists = Checklist.objects.filter(space_id=space)
+
+        # 직렬화
+        serializer = Checklist_view_Serializer(checklists, many=True) 
+
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": f"체크리스트 목록 조회를 성공하였습니다.",
+            "data" : serializer.data
+        }, status=status.HTTP_200_OK)
+
+class ChecklistDeleteView(APIView):  # 삭제
+    permission_classes = [IsAuthenticated]  # 토큰 인증
+
+    def delete(self, request, checklist_item_id):
+        update_expired_items()  # 자동 마감 기한 처리
+        # 항목 존재 여부 확인
+        checklist_item = Checklistitem.objects.filter(checklist_item_id=checklist_item_id).first()
+        if not checklist_item:
+            return Response({
+                "success": False,
+                "errorCode": "CHECKLIST_ITEM_NOT_FOUND",
+                "message": f"해당 체크리스트 항목을 찾을 수 없습니다: id={checklist_item_id}"
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 연결된 checklist
+        checklist = checklist_item.checklist_id
+
+        # 삭제 전 카운트 업데이트
+        checklist.total_count = max(checklist.total_count -1, 0)
+        if checklist_item.status == 1:
+            checklist.completed_count = max(checklist.completed_count -1,0)
+
+        checklist.save() # DB 반영
+        checklist_item.delete()  # 삭제
+
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": f"체크리스트 항목이 성공적으로 삭제되었습니다."
+        }, status=status.HTTP_200_OK)
+
+class ChecklistCompleteView(APIView):  # 완료
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, checklist_item_id):
+        update_expired_items()  # 자동 마감 기한 처리
+        # 항목 조회
+        checklist_item = Checklistitem.objects.filter(checklist_item_id=checklist_item_id).first()
+        if not checklist_item:
+            return Response({
+                "success": False,
+                "errorCode": "CHECKLIST_ITEM_NOT_FOUND",
+                "message": f"해당 체크리스트 항목을 찾을 수 없습니다: id={checklist_item_id}"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 권한 확인
+        if checklist_item.email != request.user:
+            return Response({
+                "success": False,
+                "errorCode": "NOT_AUTHORIZED",
+                "message": f"해당 체크리스트를 완료 처리할 권한이 없습니다."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 이미 완료된 경우
+        if checklist_item.status == 1:
+            return Response({
+                "success": False,
+                "errorCode": "ALREADY_COMPLETED",
+                "message": f"이미 완료된 항목입니다: id={checklist_item_id}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 완료 처리
+        checklist_item.status = 1
+        checklist_item.complete_at = timezone.now()
+        checklist_item.save()
+
+        # completed_count 업데이트
+        checklist= checklist_item.checklist_id
+        checklist.completed_count += 1
+        checklist.save()
+
+        serializer = Checklist_complete_Serializer(checklist_item)
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": f"검토 대기 처리되었습니다.",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+    
+class PrioritySpaceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        top_spaces = top_checklist_spaces()
-        return Response(top_spaces, status=status.HTTP_200_OK)
-
-def update_status():  # 상태 판단 함수
-    today = datetime.now()
-    overdue_checklists = Checklistitem.objects.filter(
-        status=0, 
-        due_date__lt = today
-    )
-    updated_count = overdue_checklists.update(status=2)
-    return updated_count
-
-
-def top_checklist_spaces(): # top 3 체크리스트
-    top_spaces = (
-        Checklistitem.objects
-        .filter(status=0)
-        .values(
-            space_id = F('checklist__item__parent_space__space_id'),
-            space_name = F('checklist__item__parent_space__space_name')
+        limit_param = request.query_params.get('limit', '3')
+        try:
+            limit = int(limit_param)
+            if limit < 1:
+                raise ValueError
+        except ValueError:
+            return Response({
+                "success": False,
+                "errorCode": "INVALID_QUERY_PARAM",
+                "message": "limit 값은 1이상 정수여야 합니다."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 미완료 항목들에 관해서만 카운트 진행
+        space_count = (
+            Checklistitem.objects
+            .filter(status=0)
+            .values('checklist_id__space_id','checklist_id__space_id__space_name')
+            .annotate(checklist_item_count = Count('pk'))
+            .order_by('-checklist_item_count')[:limit]
         )
-        .annotate(incomplete_count=Count('id'))
-        .order_by('-incomplete_count')[:3]
-    )
-    return top_spaces
 
+        data = [
+            {
+                "space_id": space['checklist_id__space_id'],
+                "space_name": space['checklist_id__space_id__space_name'],
+                "checklist_item_count": space['checklist_item_count']
+            }
+            for space in space_count
+        ]
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": "청소 구역 우선순위 조회 성공",
+            "data": data
+        }, status=status.HTTP_200_OK)
+    
 
+# 마감 기한 지난 체크리스트 status 변경 -> 실시간 request시 반영 처리
+def update_expired_items():
+    now = timezone.now()
+    expired_items = Checklistitem.objects.filter(status=0, due_date__lt=now)
+    expired_items.update(status=2)
