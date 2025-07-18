@@ -1,3 +1,4 @@
+from calendar import c
 from rest_framework import status, serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, ValidationError
@@ -14,6 +15,7 @@ from .serializers import (
     ItemUpdateSerializer,
 )
 from .models import Space, Item
+from checklists.models import Checklist
 from groups.models import Group
 
 
@@ -53,6 +55,13 @@ class SpaceCreateView(GenericAPIView):
         spaces = [Space(group=group, **data) for data in serializer.validated_data]
         created = Space.objects.bulk_create(spaces)
         # 여러 공간 한꺼번에 DB 저장
+
+        checklists = [
+            Checklist(space_id=space, total_count=0, completed_count=0)
+            for space in created
+        ]
+        Checklist.objects.bulk_create(checklists)
+
         response_data = SpaceResponseSerializer(created, many=True).data
 
         return Response(
