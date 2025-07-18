@@ -62,3 +62,5 @@ class GroupEvalResponseSerializer(serializers.ModelSerializer):
             'rating', 
         ]
 
+class ChecklistFeedbackSerializer(serializers.Serializer):  # 청소 평가
+    feedback = serializers.ChoiceField(choices=["good", "bad"])
