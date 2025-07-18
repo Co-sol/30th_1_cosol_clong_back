@@ -99,3 +99,35 @@ class ItemResponseSerializer(serializers.ModelSerializer):
             "size",
             "direction",
         ]
+
+
+# 공간 정보 응답용
+class ItemInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = [
+            "item_id",
+            "item_name",
+            "start_x",
+            "start_y",
+            "width",
+            "height",
+            "parent_space_id",
+        ]
+
+
+class SpaceInfoSerializer(serializers.ModelSerializer):
+    items = ItemInfoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Space
+        fields = [
+            "space_id",
+            "space_name",
+            "space_type",
+            "start_x",
+            "start_y",
+            "width",
+            "height",
+            "items",
+        ]
