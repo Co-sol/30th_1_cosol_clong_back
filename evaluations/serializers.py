@@ -4,6 +4,9 @@ from groups.models import Group
 from .models import GroupEval
 from datetime import datetime, timedelta
 
+class GroupEvalAverageSerializer(serializers.Serializer): # 평점 계산
+    target_email = serializers.EmailField()
+    average_rating = serializers.FloatField()
 
 class EvaluationSerializer(serializers.Serializer):
     user_email = serializers.EmailField()
@@ -50,5 +53,12 @@ class GroupEvalResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GroupEval
-        fields = ['evaluation_id', 'week_start_date', 'rating', 'created_at', 'target_email']
+        fields = [
+            'evaluation_id', 
+            'week_start_date',
+            'created_at', 
+            'group_id',
+            'target_email',
+            'rating', 
+        ]
 
