@@ -10,7 +10,10 @@ class GroupEval(models.Model):
     rating = models.IntegerField()
     created_at = models.DateTimeField() # 평가 진행 날
     group_id = models.ForeignKey(Group, on_delete=models.CASCADE)
-    target_email = models.ForeignKey(User, on_delete=models.CASCADE)
+    target_email = models.ForeignKey(User, on_delete=models.CASCADE) # 평가 받는 사람
+
+    def __str__(self):
+        return self.rating
 
 class ChecklistReview(models.Model):
     STATUS_CHOICES = (
@@ -23,5 +26,8 @@ class ChecklistReview(models.Model):
     review_at = models.DateTimeField(null = True, blank=True)
     good_count = models.IntegerField()
     bad_count = models.IntegerField()
-    email = models.ForeignKey(User, on_delete=models.CASCADE)   
+    email = models.ForeignKey(User, on_delete=models.CASCADE)   # 평가하는 사람
     checklist_item_id = models.ForeignKey(Checklistitem)
+
+    def __str__(self):
+        return self.review_status
