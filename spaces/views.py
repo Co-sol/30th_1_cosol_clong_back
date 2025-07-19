@@ -1,3 +1,4 @@
+from calendar import c
 from rest_framework import status, serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, ValidationError
@@ -8,12 +9,14 @@ from django.shortcuts import get_object_or_404
 from .serializers import (
     SpaceCreateSerializer,
     SpaceResponseSerializer,
+    SpaceInfoSerializer,
     SpaceUpdateSerializer,
     ItemCreateSerializer,
     ItemResponseSerializer,
     ItemUpdateSerializer,
 )
 from .models import Space, Item
+from checklists.models import Checklist
 from groups.models import Group
 
 
@@ -53,6 +56,13 @@ class SpaceCreateView(GenericAPIView):
         spaces = [Space(group=group, **data) for data in serializer.validated_data]
         created = Space.objects.bulk_create(spaces)
         # 여러 공간 한꺼번에 DB 저장
+
+        checklists = [
+            Checklist(space_id=space, total_count=0, completed_count=0)
+            for space in created
+        ]
+        Checklist.objects.bulk_create(checklists)
+
         response_data = SpaceResponseSerializer(created, many=True).data
 
         return Response(
@@ -213,3 +223,34 @@ class ItemRUDAPIView(RetrieveUpdateDestroyAPIView):
             },
             status=status.HTTP_204_NO_CONTENT,
         )
+
+
+# 공간 목록 조회
+class SpaceInfoView(GenericAPIView):
+    serializer_class = SpaceInfoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, group_id):
+        try:
+            group = Group.objects.get(pk=group_id)
+            spaces = Space.objects.filter(group=group)
+            serializer = self.get_serializer(spaces, many=True)
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "공간 목록 조회에 성공했습니다.",
+                    "data": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Group.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "errorCode": "GROUP_NOT_FOUND",
+                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
