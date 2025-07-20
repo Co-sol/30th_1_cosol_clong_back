@@ -19,7 +19,8 @@ from checklists.models import Checklistitem
 
 class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
     permission_classes = [IsAuthenticated]
-    def post(self, request):
+    def post(self, request,group_id):
+        group = get_object_or_404(Group, pk=group_id)
         serializer = GroupEvalCreateSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
             evals = serializer.save()
@@ -34,10 +35,11 @@ class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
         return Response({
             "status": 400,
             "success": False,
-            "message": f"유효성 검사를 실패했습니다."
+            "message": f"유효성 검사를 실패했습니다.",
+            "errors": serializer.errors # 디버깅용
         }, status=status.HTTP_400_BAD_REQUEST)
 
-class GroupEvalAverageView(APIView):   # 평점 계산
+class GroupEvalAverageView(APIView):  # 평점 조회
     permission_classes = [IsAuthenticated]
 
     def get(self, request, group_id):
@@ -47,21 +49,37 @@ class GroupEvalAverageView(APIView):   # 평점 계산
             return Response({
                 "status": 403,
                 "success": False,
-                "message": f"해당 그룹에 대한 접근 권한이 없습니다."
+                "message": "해당 그룹에 대한 접근 권한이 없습니다."
             }, status=status.HTTP_403_FORBIDDEN)
 
         today = datetime.today()
-        last_sunday = today - timedelta(days=today.weekday() + 1)
-        prev_week_start = last_sunday - timedelta(days=7)
-        prev_week_start_date = prev_week_start.date()
 
+        # 이번 주 월요일
+        this_monday = today - timedelta(days=today.weekday())
+        # 지난 주 월요일
+        last_monday = this_monday - timedelta(days=7)
+        prev_week_start_date = last_monday.date()
+
+        # 이번 주 일요일
+        this_sunday = this_monday + timedelta(days=6)
+
+        # 평가 조회는 일요일 이후에만 가능
+        if today.date() < this_sunday.date():
+            return Response({
+                "status": 400,
+                "success": False,
+                "message": f"평가는 매주 일요일에 진행되므로, {this_sunday.date()} 이후에 평가 결과를 조회할 수 있습니다.",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 지난주 평가 내역을 기준으로 target_email별 평균 평점 계산
         evals = GroupEval.objects.filter(
             week_start_date__date=prev_week_start_date,
             group_id=group_id
         ).values('target_email__email') \
-        .annotate(average_rating=Avg('rating'))
+         .annotate(average_rating=Avg('rating'))
 
-        if not evals:
+        if not evals.exists():
             return Response({
                 "status": 204,
                 "success": True,
@@ -77,7 +95,7 @@ class GroupEvalAverageView(APIView):   # 평점 계산
         ]
 
         serializer = GroupEvalAverageSerializer(data=results, many=True)
-        serializer.is_valid()
+        serializer.is_valid(raise_exception=True)
 
         return Response({
             "status": 200,

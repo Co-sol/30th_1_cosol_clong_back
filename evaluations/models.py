@@ -5,12 +5,19 @@ from checklists.models import Checklistitem
 # Create your models here.
 
 class GroupEval(models.Model):
-    evaluation_id = models.AutoField(primary_key=True)
-    week_start_date = models.DateTimeField()
-    rating = models.IntegerField()
+    evaluation_id = models.AutoField(primary_key=True)  # 평가 아이디
+    week_start_date = models.DateTimeField()  # 주차 시작날
+    rating = models.IntegerField()  # 평점
     created_at = models.DateTimeField() # 평가 진행 날
-    group_id = models.ForeignKey(Group, on_delete=models.CASCADE)
-    target_email = models.ForeignKey(User, on_delete=models.CASCADE) # 평가 받는 사람
+    group_id = models.ForeignKey(Group, on_delete=models.CASCADE) # 속한 그룹
+    #target_email = models.ForeignKey(User, on_delete=models.CASCADE) # 평가 받는 사람
+    evaluator_email = models.ForeignKey(  # 평가한 사람
+        User, related_name='given_evals', on_delete=models.CASCADE
+    )
+
+    target_email = models.ForeignKey(  # 평가 받은 사람
+        User, related_name='received_evals', on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return self.rating
