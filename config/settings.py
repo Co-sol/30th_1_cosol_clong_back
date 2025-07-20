@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "checklists",
     "spaces",
     "chatbot",
+    "evaluations",
 ]
 
 REST_FRAMEWORK = {

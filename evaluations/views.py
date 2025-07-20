@@ -13,8 +13,11 @@ from .serializers import (
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_date
+from groups.models import Group
+from checklists.models import Checklistitem
 
-class GroupEvalCreateView(APIView):  # 평가 진행
+class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
     permission_classes = [IsAuthenticated]
     def post(self, request):
         serializer = GroupEvalCreateSerializer(data=request.data, context={"request": request})
@@ -37,28 +40,26 @@ class GroupEvalCreateView(APIView):  # 평가 진행
 class GroupEvalAverageView(APIView):   # 평점 계산
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request, group_id):
+        user = request.user
+
+        if user.group_id != int(group_id):
+            return Response({
+                "status": 403,
+                "success": False,
+                "message": f"해당 그룹에 대한 접근 권한이 없습니다."
+            }, status=status.HTTP_403_FORBIDDEN)
+
         today = datetime.today()
         last_sunday = today - timedelta(days=today.weekday() + 1)
         prev_week_start = last_sunday - timedelta(days=7)
         prev_week_start_date = prev_week_start.date()
 
-        user = request.user
-        user_groups = user.group_set.all()
-
-        if not user_groups.exists():
-            return Response({
-                "status": 404,
-                "success": False,
-                "message": "사용자는 어떤 그룹에도 속해 있지 않습니다.",
-                "data": []
-            }, status=status.HTTP_404_NOT_FOUND)
-
         evals = GroupEval.objects.filter(
             week_start_date__date=prev_week_start_date,
-            group_id__in=user_groups
+            group_id=group_id
         ).values('target_email__email') \
-         .annotate(average_rating=Avg('rating'))
+        .annotate(average_rating=Avg('rating'))
 
         if not evals:
             return Response({
@@ -71,7 +72,7 @@ class GroupEvalAverageView(APIView):   # 평점 계산
         results = [
             {
                 "target_email": entry['target_email__email'],
-                "average_rating": round(entry['average_rating'], 1)  # 소수점 1번째자리까지만 평점 계산
+                "average_rating": round(entry['average_rating'], 1)
             } for entry in evals
         ]
 
@@ -141,3 +142,75 @@ class ChecklistFeedbackView(APIView):  # 청소 평가
                 "new_status": new_status
             }
         }, status=status.HTTP_200_OK)
+
+
+
+# 청소 평가 조회
+class GroupLogView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        group_id = request.query_params.get("group_id")
+        date_str = request.query_params.get("date")
+
+        if not group_id or not date_str:
+            return Response({
+                "status": 400,
+                "success": False,
+                "errorCode": "NONE_QUERY_PARAMS",
+                "message": f"group_id와 date 쿼리 파라미터가 모두 필요합니다."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            group = Group.objects.get(id=group_id)
+        except Group.DoesNotExist:
+            return Response({
+                "status": 404,
+                "success": False,
+                "errorCode": "NONE_GROUP",
+                "message": f"존재하지 않는 그룹입니다."
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        date_obj = parse_date(date_str)
+        if not date_obj:
+            return Response({
+                "status": 400,
+                "success": False,
+                "erroCode": "DATE_ERROR",
+                "message": f"잘못된 날짜 형식입니다.(yyyy-mm-dd))"
+            }, status= status.HTTP_400_BAD_REQUEST)
+        
+        group_members = group.members.all()
+
+        logs = []
+        for user in group_members:
+            checklist_items = Checklistitem.objects.filter(
+                email=user,
+                complete_at__date = date_obj,
+                status = 1
+            )
+
+            completed_count = checklist_items.count()  # 청소 완료 상태 
+            eval_wait_count = ChecklistReview.objects.filter(   # 검토 대기 상태 
+                checklist_item_id__in=checklist_items,
+                review_status = 0
+            ).count()
+
+            logs.append({
+                "user":{
+                    "nickname": getattr(user, "name", ""), # 임시
+                    "profile": getattr(user, "profile", "")  # 임시
+                },
+                "completed_count": completed_count,
+                "Eval_wait_count": eval_wait_count
+            })
+
+            return Response({
+                "status":200,
+                "success": True,
+                "message": "청소 평가 조회가 완료되었습니다.",
+                "data":{
+                    "date": date_str,
+                    "logs": logs
+                }
+            }, status=status.HTTP_200_OK)

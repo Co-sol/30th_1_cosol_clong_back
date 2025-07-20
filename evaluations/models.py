@@ -27,7 +27,7 @@ class ChecklistReview(models.Model):
     good_count = models.IntegerField()
     bad_count = models.IntegerField()
     email = models.ForeignKey(User, on_delete=models.CASCADE)   # 평가하는 사람
-    checklist_item_id = models.ForeignKey(Checklistitem)
+    checklist_item_id = models.ForeignKey(Checklistitem, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.review_status
