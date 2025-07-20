@@ -19,14 +19,14 @@ class ChecklistCreateView(APIView):  # 생성
     permission_classes = [IsAuthenticated]  # 토큰 인증
 
     def post(self, request):
-        update_expired_items()  # 자동 마감 기한 처리
+        #update_expired_items()  # 자동 마감 기한 처리
         serializer = ChecklistCreateSerializer(data=request.data)
 
         if not serializer.is_valid():  # 입력값 오류
             return Response({
                 "success": False,
                 "errorCode": "MISSING_REQUIRED_FIELDS",
-                "message": f"title, due_date, checklist_id는 필수입니다."
+                "message": f"title, due_date, checklist_id는 필수입니다.",
             }, status=status.HTTP_400_BAD_REQUEST)
         
         checklist_id = serializer.validated_data['checklist_id']
@@ -51,8 +51,8 @@ class ChecklistCreateView(APIView):  # 생성
         
         # 체크리스트 항목 생성
         checklist_item = Checklistitem.objects.create(
-            checklist_id = checklist,
-            email=user, 
+            checklist_id = checklist_id,
+            email=user,
             title=serializer.validated_data['title'],
             due_date=serializer.validated_data['due_date'],
             unit_item=serializer.validated_data['unit_item']
@@ -76,8 +76,9 @@ class ChecklistSpaceView(APIView):  # 조회
 
     def get(self, request, space_id):
         update_expired_items()  # 자동 마감 기한 처리
+
         # 공간 존재 여부 확인 
-        space = Space.objects.filter(id=space_id).first()
+        space = Space.objects.filter(space_id=space_id).first()
         if not space:
             return Response({
                 "success": False,

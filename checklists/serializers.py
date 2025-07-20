@@ -6,7 +6,12 @@ class ChecklistitemSerializer(serializers.ModelSerializer):
         model = Checklistitem
         fields = "__all__"
 
-class ChecklistCreateSerializer(serializers.ModelSerializer): # 생성 (checklist에 속한 항목)
+
+from users.models import User  # User 모델 import
+
+class ChecklistCreateSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()  # 이메일을 문자열로 받음
+
     class Meta:
         model = Checklistitem
         fields = [
@@ -16,6 +21,13 @@ class ChecklistCreateSerializer(serializers.ModelSerializer): # 생성 (checklis
             'due_date',
             'unit_item',
         ]
+
+    def validate_email(self, value):
+        try:
+            return User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("해당 이메일 사용자를 찾을 수 없습니다.")
+
 
 class Checklist_view_Serializer(serializers.ModelSerializer):   #조회
     checklist_items = ChecklistitemSerializer(many=True, read_only=True)
