@@ -2,10 +2,11 @@ from rest_framework import serializers
 from .models import Space, Item
 from checklists.models import Checklist
 
+
 class ChecklistIdSerializer(serializers.ModelSerializer):
     class Meta:
         model = Checklist
-        fields = ['checklist_id', 'space_id']
+        fields = ["checklist_id", "space_id"]
 
 
 # 루트 안의 공간 생성
@@ -43,6 +44,8 @@ class SpaceUpdateSerializer(serializers.ModelSerializer):
 
 # 공간 정보 응답
 class SpaceResponseSerializer(serializers.ModelSerializer):
+    checklist_id = serializers.SerializerMethodField()
+
     class Meta:
         model = Space
         fields = [
@@ -56,7 +59,12 @@ class SpaceResponseSerializer(serializers.ModelSerializer):
             "height",
             "size",
             "direction",
+            "checklist_id",
         ]
+
+    def get_checklist_id(self, obj):
+        checklist = Checklist.objects.filter(space_id=obj).first()
+        return checklist.checklist_id if checklist else None
 
 
 # 아이템 생성

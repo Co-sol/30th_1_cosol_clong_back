@@ -94,7 +94,7 @@ class SpaceSerializer(serializers.ModelSerializer):
 class ChecklistItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Checklistitem
-        fields = ["title", "due_date", "status"]
+        fields = ["title", "due_date", "status", "unit_item", "checklist_id_id"]
 
 
 class GroupInfoSeriazlier(serializers.ModelSerializer):
@@ -165,5 +165,5 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         ]
 
     def get_checklists(self, user):
-        checklistitems = Checklistitem.objects.filter(user=user, status=0)
+        checklistitems = Checklistitem.objects.filter(email=user, status=0)
         return ChecklistItemSerializer(checklistitems, many=True).data

@@ -62,19 +62,18 @@ class SpaceCreateView(GenericAPIView):
             Checklist(space_id=space, total_count=0, completed_count=0)
             for space in created
         ]
-        created_checklists = Checklist.objects.bulk_create(checklists) # 선언 추가
+        created_checklists = Checklist.objects.bulk_create(checklists)  # 선언 추가
 
         response_data = SpaceResponseSerializer(created, many=True).data
-        checklist_response_data = ChecklistIdSerializer(created_checklists, many=True).data # 추가
+        checklist_response_data = ChecklistIdSerializer(
+            created_checklists, many=True
+        ).data  # 추가
 
         return Response(
             {
                 "success": True,
                 "message": "공간 생성에 성공하였습니다.",
-                "data": {
-                    "root": response_data,
-                    "checklists": checklist_response_data, # 추가
-                    },
+                "data": {"root": response_data},
             },
             status=status.HTTP_201_CREATED,
         )
