@@ -11,22 +11,22 @@ from .serializers import (
     Checklist_complete_Serializer
 )
 from rest_framework.permissions import IsAuthenticated
-#from datetime import datetime
 from django.utils import timezone
 from django.db.models import Count
+from evaluations.models import ChecklistReview
 
 class ChecklistCreateView(APIView):  # 생성
     permission_classes = [IsAuthenticated]  # 토큰 인증
 
     def post(self, request):
-        update_expired_items()  # 자동 마감 기한 처리
+        #update_expired_items()  # 자동 마감 기한 처리
         serializer = ChecklistCreateSerializer(data=request.data)
 
         if not serializer.is_valid():  # 입력값 오류
             return Response({
                 "success": False,
                 "errorCode": "MISSING_REQUIRED_FIELDS",
-                "message": f"title, due_date, checklist_id는 필수입니다."
+                "message": f"title, due_date, checklist_id는 필수입니다.",
             }, status=status.HTTP_400_BAD_REQUEST)
         
         checklist_id = serializer.validated_data['checklist_id']
@@ -51,8 +51,8 @@ class ChecklistCreateView(APIView):  # 생성
         
         # 체크리스트 항목 생성
         checklist_item = Checklistitem.objects.create(
-            checklist_id = checklist,
-            email=user, 
+            checklist_id = checklist_id,
+            email=user,
             title=serializer.validated_data['title'],
             due_date=serializer.validated_data['due_date'],
             unit_item=serializer.validated_data['unit_item']
@@ -76,8 +76,9 @@ class ChecklistSpaceView(APIView):  # 조회
 
     def get(self, request, space_id):
         update_expired_items()  # 자동 마감 기한 처리
+
         # 공간 존재 여부 확인 
-        space = Space.objects.filter(id=space_id).first()
+        space = Space.objects.filter(space_id=space_id).first()
         if not space:
             return Response({
                 "success": False,
@@ -168,6 +169,16 @@ class ChecklistCompleteView(APIView):  # 완료
         checklist= checklist_item.checklist_id
         checklist.completed_count += 1
         checklist.save()
+
+        # 자동으로 ChecklistReview 생성
+        ChecklistReview.objects.create(
+            review_status=0,  # 대기 상태
+            review_at=None,
+            good_count=0,
+            bad_count=0,
+            email=request.user,  # 체크리스트 완료한 사용자
+            checklist_item_id=checklist_item
+        )
 
         serializer = Checklist_complete_Serializer(checklist_item)
         return Response({

@@ -1,5 +1,11 @@
 from rest_framework import serializers
 from .models import Space, Item
+from checklists.models import Checklist
+
+class ChecklistIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Checklist
+        fields = ['checklist_id', 'space_id']
 
 
 # 루트 안의 공간 생성

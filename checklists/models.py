@@ -5,8 +5,8 @@ from spaces.models import Space
 
 class Checklist(models.Model):  
     checklist_id = models.AutoField(primary_key=True)
-    total_count = models.IntegerField()
-    completed_count = models.IntegerField()
+    total_count = models.IntegerField(null=True)
+    completed_count = models.IntegerField(null=True)
     space_id = models.ForeignKey(Space, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -24,7 +24,7 @@ class Checklistitem(models.Model):
     complete_at = models.DateTimeField(null=True, blank=True) # 완료 날짜
     status = models.IntegerField(choices=STATUS_CHOICES, default=0) 
     unit_item = models.CharField(max_length=255)
-    checklist_id = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name="checklist_items") 
+    checklist_id = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name="checklist_items", null=True) 
     email = models.ForeignKey(User, on_delete=models.CASCADE) 
    
     def __str__(self):
