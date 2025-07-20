@@ -2,7 +2,16 @@ from rest_framework import serializers
 from users.models import User
 from groups.models import Group
 from .models import GroupEval
-from datetime import datetime, timedelta
+from datetime import timedelta
+from checklists.models import Checklistitem
+
+class UserSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'name',
+            'profile'
+        ]
 
 class GroupEvalAverageSerializer(serializers.Serializer): # 평점 계산
     target_email = serializers.EmailField()
@@ -41,7 +50,7 @@ class GroupEvalCreateSerializer(serializers.Serializer):
                 week_start_date=week_start,
                 rating=eval_data['rating'],
                 group_id=group,
-                evaluator_email=request_user,       # ← 평가자 추가
+                evaluator_email=request_user, 
                 target_email=target_user
             )
             created_evals.append(eval_obj)
@@ -67,3 +76,18 @@ class GroupEvalResponseSerializer(serializers.ModelSerializer):
 
 class ChecklistFeedbackSerializer(serializers.Serializer):  # 청소 평가
     feedback = serializers.ChoiceField(choices=["good", "bad"])
+
+class ChecklistItemPendingReviewSerializer(serializers.ModelSerializer):
+    space_name = serializers.CharField(source='checklist_id.space_id.space_name')
+    item_name = serializers.CharField(source='unit_item')
+    complete_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", required=False)
+
+    class Meta:
+        model = Checklistitem
+        fields = [
+            'checklist_item_id', 
+            'title', 
+            'space_name', 
+            'item_name', 
+            'complete_at'
+            ]
