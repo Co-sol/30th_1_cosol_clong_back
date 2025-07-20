@@ -94,7 +94,7 @@ class SpaceSerializer(serializers.ModelSerializer):
 class ChecklistItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Checklistitem
-        fields = ["title", "due_date", "status"]
+        fields = ["title", "due_date", "status", "unit_item", "checklist_id_id"]
 
 
 class GroupInfoSeriazlier(serializers.ModelSerializer):
