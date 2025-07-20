@@ -105,10 +105,10 @@ class GroupEvalAverageView(APIView):  # 평점 조회
         }, status=status.HTTP_200_OK)
 
 # 그룹 일지
-class ChecklistFeedbackView(APIView):  # 청소 평가
+class ChecklistFeedbackView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, review_id):
+    def post(self, request, group_id, review_id):
         review = get_object_or_404(ChecklistReview, pk=review_id)
         feedback = request.data.get("feedback")
 
@@ -130,16 +130,27 @@ class ChecklistFeedbackView(APIView):  # 청소 평가
         status_updated = False
         new_status = review.review_status
 
-        # 전체 그룹원 수 가져오기
-        group = review.checklist_item_id.checklist_id.space_id.group_id
+        # group_id 검증 (ID 직접 비교)
+        actual_group_id = review.checklist_item_id.checklist_id.space_id.group_id  
+
+        if actual_group_id != group_id:
+            return Response({
+                "status": 403,
+                "success": False,
+                "message": f"리뷰 ID가 해당 그룹 ID에 속하지 않습니다.",
+                "data": None
+            }, status=403)
+
+        # group 객체 가져오기
+        group = review.checklist_item_id.checklist_id.space_id.group
+
         group_members = group.members.all()
         total_members = group_members.count()
 
         total_feedback = review.good_count + review.bad_count
 
-        # 과반수 이상 평가 들어오면 상태 결정
         if review.review_status == 0 and total_feedback >= total_members:
-            if review.good_count > review.bad_count:
+            if review.good_count >= review.bad_count:
                 review.review_status = 1  # 승인
             else:
                 review.review_status = 2  # 반려
@@ -160,7 +171,6 @@ class ChecklistFeedbackView(APIView):  # 청소 평가
                 "new_status": new_status
             }
         }, status=status.HTTP_200_OK)
-
 
 
 # 청소 평가 조회

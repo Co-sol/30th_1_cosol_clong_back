@@ -11,9 +11,9 @@ from .serializers import (
     Checklist_complete_Serializer
 )
 from rest_framework.permissions import IsAuthenticated
-#from datetime import datetime
 from django.utils import timezone
 from django.db.models import Count
+from evaluations.models import ChecklistReview
 
 class ChecklistCreateView(APIView):  # 생성
     permission_classes = [IsAuthenticated]  # 토큰 인증
@@ -169,6 +169,16 @@ class ChecklistCompleteView(APIView):  # 완료
         checklist= checklist_item.checklist_id
         checklist.completed_count += 1
         checklist.save()
+
+        # 자동으로 ChecklistReview 생성
+        ChecklistReview.objects.create(
+            review_status=0,  # 대기 상태
+            review_at=None,
+            good_count=0,
+            bad_count=0,
+            email=request.user,  # 체크리스트 완료한 사용자
+            checklist_item_id=checklist_item
+        )
 
         serializer = Checklist_complete_Serializer(checklist_item)
         return Response({
