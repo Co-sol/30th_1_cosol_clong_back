@@ -165,5 +165,5 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         ]
 
     def get_checklists(self, user):
-        checklistitems = Checklistitem.objects.filter(user=user, status=0)
+        checklistitems = Checklistitem.objects.filter(email=user, status=0)
         return ChecklistItemSerializer(checklistitems, many=True).data
