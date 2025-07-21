@@ -57,6 +57,7 @@ class UserLoginView(generics.GenericAPIView):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
+            isTested = getattr(user, 'clean_type', None) is not None
 
             refresh = RefreshToken.for_user(user)
             return Response({
@@ -65,6 +66,7 @@ class UserLoginView(generics.GenericAPIView):
                 'data': {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
+                    'isTested': isTested,
                 }
             })
 
