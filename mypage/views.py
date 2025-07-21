@@ -23,7 +23,10 @@ class UserInfoView(generics.GenericAPIView):
                 {
                     "success": True,
                     "message": "사용자 정보 조회에 성공하였습니다.",
-                    "data": serializer.data,
+                    "data": {
+                        **serializer.data,
+                        "IsInGroup": bool(user.group_id),
+                    },
                 },
                 status=status.HTTP_200_OK,
             )
