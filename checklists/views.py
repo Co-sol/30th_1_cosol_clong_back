@@ -8,7 +8,8 @@ from .serializers import (
     Checklist_view_Serializer, 
     ChecklistCreateSerializer,
     ChecklistitemSerializer,
-    Checklist_complete_Serializer
+    Checklist_complete_Serializer,
+    UserSimpleSerializer
 )
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
