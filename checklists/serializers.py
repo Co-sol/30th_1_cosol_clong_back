@@ -1,13 +1,37 @@
 from rest_framework import serializers
 from .models import Checklistitem, Checklist
+from users.models import User  # User 모델 import
 
-class ChecklistitemSerializer(serializers.ModelSerializer):
+class UserSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'name',
+            'profile'
+        ]
+
+"""class ChecklistitemSerializer(serializers.ModelSerializer):
+    user_info = UserSimpleSerializer(source='email', read_only=True)
+
     class Meta:
         model = Checklistitem
-        fields = "__all__"
+        fields = "__all__" + ['user_info']"""
+class ChecklistitemSerializer(serializers.ModelSerializer):
+    user_info = UserSimpleSerializer(source='email', read_only=True)
 
-
-from users.models import User  # User 모델 import
+    class Meta:
+        model = Checklistitem
+        fields = [
+            'checklist_item_id',
+            'checklist_id',
+            'email',
+            'title',
+            'due_date',
+            'unit_item',
+            'status',
+            'complete_at',
+            'user_info'
+        ]
 
 class ChecklistCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()  # 이메일을 문자열로 받음
