@@ -23,7 +23,8 @@ from users.models import User
 
 class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
     permission_classes = [IsAuthenticated]
-    def post(self, request,group_id):
+    def post(self, request):
+        group_id = request.user.group_id
         group = get_object_or_404(Group, pk=group_id)
         serializer = GroupEvalCreateSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
@@ -46,8 +47,9 @@ class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
 class GroupEvalAverageView(APIView):  # 평점 조회
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, group_id):
+    def get(self, request):
         user = request.user
+        group_id = user.group_id
 
         if user.group_id != int(group_id):
             return Response({
@@ -82,13 +84,6 @@ class GroupEvalAverageView(APIView):  # 평점 조회
                 "data": []
             }, status=status.HTTP_200_OK)
 
-        """results = [
-            {
-                "target_email": entry['target_email__email'],
-                "average_rating": round(entry['average_rating'], 1)
-            } for entry in evals
-        ]"""
-
         results = []
         for entry in evals:
             user = User.objects.get(email=entry['target_email__email'])
@@ -115,7 +110,8 @@ class GroupEvalAverageView(APIView):  # 평점 조회
 class PendingReviewListView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, group_id):
+    def get(self, request):
+        group_id = request.user.group_id
         # 그룹 존재 여부 확인
         group = get_object_or_404(Group, pk=group_id)
         
@@ -172,7 +168,19 @@ class PendingReviewListView(APIView):
 class ChecklistFeedbackView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, group_id, review_id):
+    def post(self, request):
+        group_id = request.user.group_id
+        review_id = request.data.get("review_id") or request.query_params.get("review_id")
+        # 문제 발생
+        
+        if not review_id:
+            return Response({
+                "status": 400,
+                "success": False,
+                "message": "리뷰 ID가 필요합니다.",
+                "data": None
+            }, status=400)
+    
         review = get_object_or_404(ChecklistReview, pk=review_id)
         feedback = request.data.get("feedback")
 
@@ -252,15 +260,16 @@ class ChecklistFeedbackView(APIView):
 class GroupLogView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, group_id):
-        date_str = request.query_params.get("date")
+    def post(self, request):
+        group_id = request.user.group_id
+        date_str = request.data.get("date")
 
         if not date_str:
             return Response({
                 "status": 400,
                 "success": False,
-                "errorCode": "NONE_QUERY_PARAMS",
-                "message": "date 쿼리 파라미터가 필요합니다."
+                "errorCode": "NONE_DATE_FIELD",
+                "message": "date 필드가 필요합니다."
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
