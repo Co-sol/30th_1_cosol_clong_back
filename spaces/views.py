@@ -241,6 +241,8 @@ class SpaceInfoView(GenericAPIView):
 
         try:
             user = request.user
+            if user.group is None:
+                raise Group.DoesNotExist
             group = user.group
             spaces = Space.objects.filter(group=group)
             serializer = self.get_serializer(spaces, many=True)
