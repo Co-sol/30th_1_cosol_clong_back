@@ -13,7 +13,6 @@ from .models import Group
 from users.models import User
 
 
-
 # 유저 조회 API
 class CheckUserView(GenericAPIView):
     permission_classes = [IsAuthenticated]
@@ -92,15 +91,18 @@ class GroupInfoView(GenericAPIView):
     serializer_class = GroupInfoSeriazlier
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, group_id):
+    def get(self, request):
         try:
-            group = Group.objects.get(pk=group_id)
+            user = request.user
+            if user.group is None:
+                raise Group.DoesNotExist
+            group = user.group
         except Group.DoesNotExist:
             return Response(
                 {
                     "success": False,
                     "errorCode": "GROUP_NOT_FOUND",
-                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                    "message": "해당 사용자는 그룹에 속해 있지 않습니다.",
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
@@ -119,21 +121,23 @@ class GroupInfoView(GenericAPIView):
 class GroupUpdateView(UpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GroupUpdateSerializer
-    lookup_url_kwarg = "group_id"
 
     def get_queryset(self):
         return Group.objects.all()
 
     def patch(self, request, *args, **kwargs):
-        group_id = self.kwargs.get("group_id")
+        user = request.user
+
         try:
-            group = Group.objects.get(pk=group_id)
+            if user.group is None:
+                raise Group.DoesNotExist
+            group = user.group
         except Group.DoesNotExist:
             return Response(
                 {
                     "success": False,
                     "errorCode": "GROUP_NOT_FOUND",
-                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                    "message": "해당 사용자는 그룹에 속해 있지 않습니다.",
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
@@ -153,15 +157,18 @@ class GroupUpdateView(UpdateAPIView):
 
 
 class GroupMemberInfoView(GenericAPIView):
-    def get(self, request, group_id):
+    def get(self, request):
         try:
-            group = Group.objects.get(pk=group_id)
+            user = request.user
+            if user.group is None:
+                raise Group.DoesNotExist
+            group = user.group
         except Group.DoesNotExist:
             return Response(
                 {
                     "success": False,
                     "errorCode": "GROUP_NOT_FOUND",
-                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                    "message": "해당 사용자는 그룹에 속해 있지 않습니다.",
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
