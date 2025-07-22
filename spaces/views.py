@@ -26,15 +26,18 @@ class SpaceCreateView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SpaceCreateSerializer
 
-    def post(self, request, group_id):
+    def post(self, request):
         try:
-            group = Group.objects.get(pk=group_id)
+            user = request.user
+            if user.group is None:
+                raise Group.DoesNotExist
+            group = user.group
         except Group.DoesNotExist:
             return Response(
                 {
                     "success": False,
                     "errorCode": "GROUP_NOT_FOUND",
-                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                    "message": "해당 사용자는 그룹에 속해 있지 않습니다.",
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
@@ -234,9 +237,11 @@ class SpaceInfoView(GenericAPIView):
     serializer_class = SpaceInfoSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, group_id):
+    def get(self, request):
+
         try:
-            group = Group.objects.get(pk=group_id)
+            user = request.user
+            group = user.group
             spaces = Space.objects.filter(group=group)
             serializer = self.get_serializer(spaces, many=True)
 
@@ -254,7 +259,7 @@ class SpaceInfoView(GenericAPIView):
                 {
                     "success": False,
                     "errorCode": "GROUP_NOT_FOUND",
-                    "message": f"해당 ID에 해당하는 그룹이 존재하지 않습니다. {group_id}",
+                    "message": "해당 사용자는 그룹에 속해 있지 않습니다.",
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
