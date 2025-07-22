@@ -67,15 +67,6 @@ class GroupEvalAverageView(APIView):  # 평점 조회
         # 이번 주 일요일
         this_sunday = this_monday + timedelta(days=6)
 
-        # 평가 조회는 일요일 이후에만 가능
-        if today.date() < this_sunday.date():
-            return Response({
-                "status": 400,
-                "success": False,
-                "message": f"평가는 매주 일요일에 진행되므로, {this_sunday.date()} 이후에 평가 결과를 조회할 수 있습니다.",
-                "data": []
-            }, status=status.HTTP_400_BAD_REQUEST)
-
         # 지난주 평가 내역을 기준으로 target_email별 평균 평점 계산
         evals = GroupEval.objects.filter(
             week_start_date__date=prev_week_start_date,
@@ -91,12 +82,22 @@ class GroupEvalAverageView(APIView):  # 평점 조회
                 "data": []
             }, status=status.HTTP_200_OK)
 
-        results = [
+        """results = [
             {
                 "target_email": entry['target_email__email'],
                 "average_rating": round(entry['average_rating'], 1)
             } for entry in evals
-        ]
+        ]"""
+
+        results = []
+        for entry in evals:
+            user = User.objects.get(email=entry['target_email__email'])
+            results.append({
+                "target_email": entry['target_email__email'],
+                "average_rating": round(entry['average_rating'], 1),
+                "user_info": UserSimpleSerializer(user).data  # 👈 사용자 정보 추가
+            })
+
 
         serializer = GroupEvalAverageSerializer(data=results, many=True)
         serializer.is_valid(raise_exception=True)

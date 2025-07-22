@@ -17,7 +17,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 class GroupEvalAverageSerializer(serializers.Serializer): # 평점 계산
     target_email = serializers.EmailField()
     average_rating = serializers.FloatField()
-    user_info = UserSimpleSerializer(read_only=True)
+    user_info = UserSimpleSerializer()  # 👈 추가
 
 class EvaluationSerializer(serializers.Serializer):
     user_email = serializers.EmailField()
@@ -63,6 +63,7 @@ class GroupEvalResponseSerializer(serializers.ModelSerializer):
     target_email = serializers.EmailField(source='target_email.email')
     evaluator_email = serializers.EmailField(source='evaluator_email.email')  # ← 추가
     target_user_info = UserSimpleSerializer(source='target_email', read_only=True)
+    
     class Meta:
         model = GroupEval
         fields = [
