@@ -10,12 +10,6 @@ class UserSimpleSerializer(serializers.ModelSerializer):
             'profile'
         ]
 
-"""class ChecklistitemSerializer(serializers.ModelSerializer):
-    user_info = UserSimpleSerializer(source='email', read_only=True)
-
-    class Meta:
-        model = Checklistitem
-        fields = "__all__" + ['user_info']"""
 class ChecklistitemSerializer(serializers.ModelSerializer):
     user_info = UserSimpleSerializer(source='email', read_only=True)
 
