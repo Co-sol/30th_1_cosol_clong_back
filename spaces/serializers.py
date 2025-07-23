@@ -126,6 +126,8 @@ class ItemInfoSerializer(serializers.ModelSerializer):
             "start_y",
             "width",
             "height",
+            "size",
+            "direction",
             "parent_space_id",
         ]
 
@@ -143,5 +145,7 @@ class SpaceInfoSerializer(serializers.ModelSerializer):
             "start_y",
             "width",
             "height",
+            "size",
+            "direction",
             "items",
         ]
