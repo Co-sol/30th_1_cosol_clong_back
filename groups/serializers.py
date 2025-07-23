@@ -102,7 +102,7 @@ class GroupInfoSeriazlier(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ["group_name", "group_rule", "group_created_at", "spaces"]
+        fields = ["group_name", "group_rule", "spaces"]
 
 
 class GroupUpdateSerializer(serializers.ModelSerializer):
