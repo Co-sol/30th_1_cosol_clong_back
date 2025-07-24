@@ -56,7 +56,7 @@ class ChecklistCreateView(APIView):  # 생성
             email=user,
             title=serializer.validated_data['title'],
             due_date=serializer.validated_data['due_date'],
-            unit_item=serializer.validated_data['unit_item']
+            unit_item=serializer.validated_data.get('unit_item')  # None 허용
         )
 
         # total_count 증가

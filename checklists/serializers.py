@@ -39,6 +39,9 @@ class ChecklistCreateSerializer(serializers.ModelSerializer):
             'due_date',
             'unit_item',
         ]
+        extra_kwargs = {  # Null처리
+            'unit_item': {'required': False, 'allow_null': True},
+        }
 
     def validate_email(self, value):
         try:
