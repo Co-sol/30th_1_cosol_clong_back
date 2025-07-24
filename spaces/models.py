@@ -8,7 +8,6 @@ DIRECTION_CHOICES = [("horizontal", "가로"), ("vertical", "세로")]
 SIZE_CHOICES = [(1, "1배"), (2, "2배")]
 SPACE_TYPE_CHOICES = [(0, "Public"), (1, "Private")]
 
-
 # Create your models here.
 class Space(models.Model):
     space_id = models.AutoField(primary_key=True)
