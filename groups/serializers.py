@@ -76,6 +76,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
 class SpaceSerializer(serializers.ModelSerializer):
     items = ItemSerializer(many=True, read_only=True)
+    owner_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Space
@@ -83,12 +84,16 @@ class SpaceSerializer(serializers.ModelSerializer):
             "space_id",
             "space_name",
             "space_type",
+            "owner_email",
             "start_x",
             "start_y",
             "width",
             "height",
             "items",
         ]
+
+    def get_owner_email(self, obj):
+        return obj.owner.email if obj.owner else None
 
 
 class ChecklistItemSerializer(serializers.ModelSerializer):
