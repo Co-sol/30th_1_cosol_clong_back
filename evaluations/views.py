@@ -295,29 +295,32 @@ class GroupLogView(APIView):
 
         today = date_class.today()
         logs = []
-        for user in group_members:
-            if date_obj == today:
-                checklist_items = Checklistitem.objects.filter(
-                    email=user,
-                    complete_at__date=date_obj,
-                    status=1
-                )
+        total_completed_count = 0  # 전체 완료 수 초기화
 
-                completed_count = checklist_items.count()  # 검토 대기 상태
+        for user in group_members:
+            if date_obj == today:  # 오늘일 경우
+
+                completed_count = ChecklistReview.objects.filter(
+                    checklist_item_id__email=user,
+                    review_status=1,  # 검토 결과, 승인(완료) 상태
+                ).count()
+
                 eval_wait_count = ChecklistReview.objects.filter(
-                    checklist_item_id__in=checklist_items,
-                    review_status=0
+                    checklist_item_id__email=user,
+                    review_status=0,  # 검토 대기 상태
                 ).count()
 
                 logs.append({
                     "user": UserSimpleSerializer(user).data,
-                    "completed_count": completed_count,
-                    "eval_wait_count": eval_wait_count
+                    "completed_count": completed_count,  # 청소 완료
+                    "eval_wait_count": eval_wait_count   # 검토 대기
                 })
+
+                total_completed_count += completed_count  # 누적합 계산
 
             else:
                 # 과거 날짜인 경우
-                completed_review_count = ChecklistReview.objects.filter(
+                completed_count = ChecklistReview.objects.filter(
                     checklist_item_id__email=user,
                     review_status=1,  # 검토 결과, 승인(완료) 상태
                     review_at__date=date_obj
@@ -325,15 +328,25 @@ class GroupLogView(APIView):
 
                 rejected_review_count = ChecklistReview.objects.filter(
                     checklist_item_id__email=user,
-                    review_status=2,  # 검토 결과, 반려 상태
+                    review_status=2,  # 검토 반려 상태
                     review_at__date=date_obj
                 ).count()
 
+                overdeadline_count = Checklistitem.objects.filter(
+                    email=user,
+                    complete_at__date=date_obj,
+                    status=2   # 마감 기한 지난 상태
+                ).count()
+                
+                failed_count = rejected_review_count + overdeadline_count
+
                 logs.append({
                     "user": UserSimpleSerializer(user).data,
-                    "completed_review_count": completed_review_count,
-                    "rejected_review_count": rejected_review_count
+                    "completed_count": completed_count,  # 청소 완료
+                    "failed_count": failed_count  # 미션 실패
                 })
+
+                total_completed_count += completed_count  # 과거일 경우에도 누적
 
         return Response({
             "status":200,
@@ -341,6 +354,7 @@ class GroupLogView(APIView):
             "message": "청소 평가 조회가 완료되었습니다.",
             "data":{
                 "date": date_str,
-                "logs": logs
+                "logs": logs,
+                "total_completed_count": total_completed_count
             }
         }, status=status.HTTP_200_OK)
