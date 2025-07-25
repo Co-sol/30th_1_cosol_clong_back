@@ -227,16 +227,22 @@ class ChecklistFeedbackView(APIView):
         group_members = group.members.all()
         total_members = group_members.count()
 
+        # 평가 대상 인원 = 전체 그룹원 - 담당자
+        max_feedback_count = total_members - 1
         total_feedback = review.good_count + review.bad_count
 
-        if review.review_status == 0 and total_feedback >= total_members:
-            if review.good_count >= review.bad_count:
+        if review.review_status == 0:
+            if review.good_count > max_feedback_count // 2:
                 review.review_status = 1  # 승인
-            else:
+                review.review_at = timezone.now()
+                status_updated = True
+                new_status = review.review_status
+            elif review.bad_count > max_feedback_count // 2:
                 review.review_status = 2  # 반려
-            review.review_at = timezone.now()
-            status_updated = True
-            new_status = review.review_status
+                review.review_at = timezone.now()
+                status_updated = True
+                new_status = review.review_status
+
 
         review.save()
 
