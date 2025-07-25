@@ -171,7 +171,6 @@ class ChecklistFeedbackView(APIView):
     def post(self, request):
         group_id = request.user.group_id
         review_id = request.data.get("review_id") or request.query_params.get("review_id")
-        # 문제 발생
         
         if not review_id:
             return Response({
@@ -183,6 +182,15 @@ class ChecklistFeedbackView(APIView):
     
         review = get_object_or_404(ChecklistReview, pk=review_id)
         feedback = request.data.get("feedback")
+
+        assignee = review.checklist_item_id.email
+        if assignee == request.user:
+            return Response({
+                "status": 403,
+                "success": False,
+                "message": "자신이 담당한 항목은 평가할 수 없습니다.",
+                "data": None
+            }, status=403)
 
         serializer = ChecklistFeedbackSerializer(data=request.data)
         if not serializer.is_valid():
