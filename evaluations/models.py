@@ -10,7 +10,6 @@ class GroupEval(models.Model):
     rating = models.IntegerField()  # 평점
     created_at = models.DateTimeField() # 평가 진행 날
     group_id = models.ForeignKey(Group, on_delete=models.CASCADE) # 속한 그룹
-    #target_email = models.ForeignKey(User, on_delete=models.CASCADE) # 평가 받는 사람
     evaluator_email = models.ForeignKey(  # 평가한 사람
         User, related_name='given_evals', on_delete=models.CASCADE
     )

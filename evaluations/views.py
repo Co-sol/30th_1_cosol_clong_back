@@ -40,8 +40,7 @@ class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
         return Response({
             "status": 400,
             "success": False,
-            "message": f"유효성 검사를 실패했습니다.",
-            "errors": serializer.errors # 디버깅용
+            "message": f"유효성 검사를 실패했습니다."
         }, status=status.HTTP_400_BAD_REQUEST)
 
 class GroupEvalAverageView(APIView):  # 평점 조회
@@ -87,12 +86,23 @@ class GroupEvalAverageView(APIView):  # 평점 조회
         results = []
         for entry in evals:
             user = User.objects.get(email=entry['target_email__email'])
+
+            # 주차 기준 범위 설정
+            week_start = prev_week_start_date
+            week_end = week_start + timedelta(days=6)
+
+            weekly_completed_count = ChecklistReview.objects.filter(
+                email=user,
+                review_status=1,
+                checklist_item_id__complete_at__date__range=[week_start, week_end]
+            ).count()
+
             results.append({
                 "target_email": entry['target_email__email'],
                 "average_rating": round(entry['average_rating'], 1),
-                "user_info": UserSimpleSerializer(user).data  # 👈 사용자 정보 추가
+                "weekly_completed_count": weekly_completed_count,
+                "user_info": UserSimpleSerializer(user).data,
             })
-
 
         serializer = GroupEvalAverageSerializer(data=results, many=True)
         serializer.is_valid(raise_exception=True)
