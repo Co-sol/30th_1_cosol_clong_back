@@ -4,6 +4,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Checklist,Checklistitem
 from spaces.models import Space
+from users.models import User
 from .serializers import ( 
     Checklist_view_Serializer, 
     ChecklistCreateSerializer,
@@ -20,7 +21,7 @@ class ChecklistCreateView(APIView):  # 생성
     permission_classes = [IsAuthenticated]  # 토큰 인증
 
     def post(self, request):
-        #update_expired_items()  # 자동 마감 기한 처리
+        update_expired_items()  # 자동 마감 기한 처리
         serializer = ChecklistCreateSerializer(data=request.data)
 
         if not serializer.is_valid():  # 입력값 오류
@@ -31,7 +32,7 @@ class ChecklistCreateView(APIView):  # 생성
             }, status=status.HTTP_400_BAD_REQUEST)
         
         checklist_id = serializer.validated_data['checklist_id']
-        user = serializer.validated_data['email']
+        assignee_email = serializer.validated_data['email']  # 담당자 이메일
 
         # 체크리스트 존재 확인
         checklist = Checklist.objects.filter(pk=checklist_id.pk).first()
@@ -42,18 +43,20 @@ class ChecklistCreateView(APIView):  # 생성
                 "message": f"해당 checklist_id를 찾을 수 없습니다."
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # 사용자 존재 확인
-        if request.user != user:
+        # 담당자 이메일로 사용자 조회
+        try:
+            assignee = User.objects.get(email=assignee_email)
+        except User.DoesNotExist:
             return Response({
                 "success": False,
                 "errorCode": "USER_NOT_FOUND",
-                "message": f"해당 사용자를 찾을 수 없습니다."
+                "message": f"담당자 이메일({assignee_email})에 해당하는 사용자를 찾을 수 없습니다."
             }, status=status.HTTP_404_NOT_FOUND)
         
         # 체크리스트 항목 생성
         checklist_item = Checklistitem.objects.create(
             checklist_id = checklist_id,
-            email=user,
+            email=assignee,
             title=serializer.validated_data['title'],
             due_date=serializer.validated_data['due_date'],
             unit_item=serializer.validated_data.get('unit_item')  # None 허용

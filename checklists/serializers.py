@@ -12,6 +12,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 
 class ChecklistitemSerializer(serializers.ModelSerializer):
     user_info = UserSimpleSerializer(source='email', read_only=True)
+    email = serializers.SerializerMethodField()
 
     class Meta:
         model = Checklistitem
@@ -26,6 +27,9 @@ class ChecklistitemSerializer(serializers.ModelSerializer):
             'complete_at',
             'user_info'
         ]
+
+    def get_email(self, obj):
+        return obj.email.email  # email 필드의 실제 이메일 주소 반환
 
 class ChecklistCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()  # 이메일을 문자열로 받음
@@ -44,10 +48,9 @@ class ChecklistCreateSerializer(serializers.ModelSerializer):
         }
 
     def validate_email(self, value):
-        try:
-            return User.objects.get(email=value)
-        except User.DoesNotExist:
+        if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("해당 이메일 사용자를 찾을 수 없습니다.")
+        return value
 
 
 class Checklist_view_Serializer(serializers.ModelSerializer):   #조회
