@@ -20,6 +20,7 @@ from groups.models import Group
 from checklists.models import Checklistitem
 from datetime import date as date_class
 from users.models import User
+import math
 
 class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
     permission_classes = [IsAuthenticated]
@@ -173,6 +174,122 @@ class PendingReviewListView(APIView):
             "data": data
         }, status=200)
 
+# 유저별 날짜별 청소 항목 상태 리스트 조회
+class UserChecklistStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        group_id = request.user.group_id
+        date_str = request.data.get("date")
+        email = request.data.get("email")
+
+        if not date_str or not email:
+            return Response({
+                "status": 400,
+                "success": False,
+                "message": "date와 email 필드가 필요합니다"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        date_obj = parse_date(date_str)
+        if not date_obj:
+            return Response({
+                "status": 400,
+                "success": False,
+                "message": "날짜 형식이 잘못되었습니다. (yyyy-mm-dd)"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email, group_id=group_id)
+        except User.DoesNotExist:
+            return Response({
+                "status": 404,
+                "success": False,
+                "message": "해당 그룹에 속한 이메일 유저가 존재하지 않습니다."
+            })
+
+        # 공통 데이터 수집 함수
+        def get_info(item, review=None):
+            checklist = item.checklist_id
+            space = checklist.space_id
+
+            data = {
+                "title": item.title,
+                "complete_at": item.complete_at,
+                "location": {
+                    "space": space.space_name,
+                    "item": item.unit_item
+                },
+                "assignee": {
+                    "id": item.email.id,
+                    "name": item.email.name,
+                    "email": item.email.email
+                }
+            }
+
+            if review:
+                data["review_id"] = review.review_id  # ✅ review_id 포함
+
+            return data
+
+        # 검토 대기
+        pending_reviews = ChecklistReview.objects.filter(
+            checklist_item_id__email=user,
+            review_status=0
+        ).select_related(
+            "checklist_item_id__checklist_id__space_id",
+            "checklist_item_id__email"
+        )
+        pending = [
+            get_info(r.checklist_item_id, review=r)
+            for r in pending_reviews
+            if r.checklist_item_id.complete_at and r.checklist_item_id.complete_at.date() == date_obj
+        ]
+
+        # 청소 완료
+        completed_reviews = ChecklistReview.objects.filter(
+            checklist_item_id__email=user,
+            review_status=1,
+            review_at__date=date_obj
+        ).select_related(
+            "checklist_item_id__checklist_id__space_id",
+            "checklist_item_id__email"
+        )
+        completed = [get_info(r.checklist_item_id) for r in completed_reviews]
+
+        # 미션 실패
+        rejected_reviews = ChecklistReview.objects.filter(
+            checklist_item_id__email=user,
+            review_status=2,
+            review_at__date=date_obj
+        ).select_related(
+            "checklist_item_id__checklist_id__space_id",
+            "checklist_item_id__email"
+        )
+
+        overdue_items = Checklistitem.objects.filter(
+            email=user,
+            complete_at__date=date_obj,
+            status=2
+        ).select_related(
+            "checklist_id__space_id",
+            "email"
+        )
+
+        failed = [get_info(r.checklist_item_id) for r in rejected_reviews] + [get_info(item) for item in overdue_items]
+
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": "유저의 청소 기록이 조회되었습니다.",
+            "data": {
+                "user": UserSimpleSerializer(user).data,
+                "date": date_str,
+                "pending": pending,
+                "completed": completed,
+                "failed": failed
+            }
+        }, status=status.HTTP_200_OK)
+
 
 # 청소 평가 진행
 class ChecklistFeedbackView(APIView):
@@ -236,23 +353,21 @@ class ChecklistFeedbackView(APIView):
 
         group_members = group.members.all()
         total_members = group_members.count()
-
-        # 평가 대상 인원 = 전체 그룹원 - 담당자
-        max_feedback_count = total_members - 1
-        total_feedback = review.good_count + review.bad_count
+        
+        max_feedback_count = total_members - 1  # 평가 가능한 인원 수
+        majority_count = math.ceil(max_feedback_count / 2)  # 과반수 기준
 
         if review.review_status == 0:
-            if review.good_count > max_feedback_count // 2:
+            if review.good_count >= majority_count:
                 review.review_status = 1  # 승인
                 review.review_at = timezone.now()
                 status_updated = True
                 new_status = review.review_status
-            elif review.bad_count > max_feedback_count // 2:
+            elif review.bad_count >= majority_count:
                 review.review_status = 2  # 반려
                 review.review_at = timezone.now()
                 status_updated = True
                 new_status = review.review_status
-
 
         review.save()
 
