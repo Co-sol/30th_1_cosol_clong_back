@@ -4,7 +4,8 @@ from .views import (
     GroupEvalAverageView,
     ChecklistFeedbackView,
     GroupLogView,
-    PendingReviewListView
+    PendingReviewListView,
+    UserChecklistStatusView
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path('logs-feedback/', ChecklistFeedbackView.as_view(), name='feedback'),
     path('logs/', GroupLogView.as_view(), name='log-view'),
     path('logs-pending/', PendingReviewListView.as_view()),
+    path('logs-list/', UserChecklistStatusView.as_view())
 ]

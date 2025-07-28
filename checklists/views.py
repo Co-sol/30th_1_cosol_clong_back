@@ -236,5 +236,11 @@ class PrioritySpaceView(APIView):
 # 마감 기한 지난 체크리스트 status 변경 -> 실시간 request시 반영 처리
 def update_expired_items():
     now = timezone.now()
-    expired_items = Checklistitem.objects.filter(status=0, due_date__lt=now)
-    expired_items.update(status=2)
+    expired_items = list(Checklistitem.objects.filter(status=0, due_date__lt=now))
+
+    for item in expired_items:
+        item.status = 2
+        item.complete_at = now  # 마감 기한을 complete_at 완료 시간과 동일 처리
+
+    Checklistitem.objects.bulk_update(expired_items, ['status', 'complete_at'])
+
