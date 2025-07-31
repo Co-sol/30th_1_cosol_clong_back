@@ -103,6 +103,41 @@ class ChecklistSpaceView(APIView):  # 조회
             "data" : serializer.data
         }, status=status.HTTP_200_OK)
 
+class GroupPendingChecklistView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        group = user.group_id  # 요청한 사용자의 그룹
+
+        if not group:
+            return Response({
+                "success": False,
+                "errorCode": "GROUP_NOT_FOUND",
+                "message": "사용자는 어떤 그룹에도 속해 있지 않습니다."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        update_expired_items()  # 실시간 마감 업데이트
+
+        # 그룹에 속한 공간들
+        spaces = Space.objects.filter(group_id=group)
+
+        # 해당 공간들에서 생성된 체크리스트들
+        checklists = Checklist.objects.filter(space_id__in=spaces)
+
+        # 상태가 0(미완료)인 체크리스트 항목들
+        checklist_items = Checklistitem.objects.filter(checklist_id__in=checklists, status=0)
+
+        serializer = ChecklistitemSerializer(checklist_items, many=True)
+
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": "그룹의 미완료 체크리스트 항목 목록입니다.",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+
 class ChecklistDeleteView(APIView):  # 삭제
     permission_classes = [IsAuthenticated]  # 토큰 인증
 
