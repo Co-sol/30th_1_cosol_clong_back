@@ -161,6 +161,7 @@ class PendingReviewListView(APIView):
                 },
                 "title": checklist_item.title,
                 "complete_at": checklist_item.complete_at,
+                "due_date": checklist_item.due_date,
                 "location": {
                     "space": space.space_name,
                     "item": checklist_item.unit_item
@@ -215,6 +216,7 @@ class UserChecklistStatusView(APIView):
             data = {
                 "title": item.title,
                 "complete_at": item.complete_at,
+                "deadline": item.due_date,   # 마감기한 추가
                 "location": {
                     "space": space.space_name,
                     "item": item.unit_item
