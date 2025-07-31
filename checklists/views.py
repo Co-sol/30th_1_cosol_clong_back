@@ -108,7 +108,7 @@ class GroupPendingChecklistView(APIView):
 
     def get(self, request):
         user = request.user
-        group = user.group_id  # 요청한 사용자의 그룹
+        group = user.group_id
 
         if not group:
             return Response({
@@ -117,24 +117,44 @@ class GroupPendingChecklistView(APIView):
                 "message": "사용자는 어떤 그룹에도 속해 있지 않습니다."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        update_expired_items()  # 실시간 마감 업데이트
+        update_expired_items()
 
-        # 그룹에 속한 공간들
+        # 그룹 공간들
         spaces = Space.objects.filter(group_id=group)
-
-        # 해당 공간들에서 생성된 체크리스트들
         checklists = Checklist.objects.filter(space_id__in=spaces)
+        
+        checklist_items = Checklistitem.objects.filter(
+            checklist_id__in=checklists,
+            status=0
+        ).select_related(
+            'checklist_id',
+            'checklist_id__space_id',
+            'email'
+        )
 
-        # 상태가 0(미완료)인 체크리스트 항목들
-        checklist_items = Checklistitem.objects.filter(checklist_id__in=checklists, status=0)
-
-        serializer = ChecklistitemSerializer(checklist_items, many=True)
+        data = []
+        for item in checklist_items:
+            space = item.checklist_id.space_id
+            data.append({
+                "checklist_item_id": item.checklist_item_id,
+                "assignee": {
+                    "id": item.email.id,
+                    "email": item.email.email,
+                    "name": item.email.name,
+                },
+                "title": item.title,
+                "due_date": item.due_date,
+                "location": {
+                    "space": space.space_name,
+                    "item": item.unit_item
+                }
+            })
 
         return Response({
             "status": 200,
             "success": True,
             "message": "그룹의 미완료 체크리스트 항목 목록입니다.",
-            "data": serializer.data
+            "data": data
         }, status=status.HTTP_200_OK)
 
 
