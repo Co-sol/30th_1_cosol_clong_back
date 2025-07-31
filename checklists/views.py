@@ -141,6 +141,7 @@ class GroupPendingChecklistView(APIView):
                     "id": item.email.id,
                     "email": item.email.email,
                     "name": item.email.name,
+                    "profile": item.email.profile,
                 },
                 "title": item.title,
                 "due_date": item.due_date,
