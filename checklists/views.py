@@ -138,7 +138,7 @@ class GroupPendingChecklistView(APIView):
             data.append({
                 "checklist_item_id": item.checklist_item_id,
                 "assignee": {
-                    "id": item.email.id,
+                    #"id": item.email.id,
                     "email": item.email.email,
                     "name": item.email.name,
                     "profile": item.email.profile,
