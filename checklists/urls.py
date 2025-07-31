@@ -5,6 +5,7 @@ from .views import (
     ChecklistCompleteView,
     ChecklistSpaceView,
     PrioritySpaceView,
+    GroupPendingChecklistView,
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path('checklist-items/<int:checklist_item_id>/complete/', ChecklistCompleteView.as_view(), name='checklist-item-complete'),
     path('create/', ChecklistCreateView.as_view(), name='checklist-item-create'),
     path('checklist-items/<int:checklist_item_id>/delete/', ChecklistDeleteView.as_view(), name='checklist-item-delete'),
+     path('total-view/', GroupPendingChecklistView.as_view(), name='group-pending-checklists'),
 ]
