@@ -296,7 +296,7 @@ def update_expired_items():
 
     for item in expired_items:
         item.status = 2
-        item.complete_at = now  # 마감 기한을 complete_at 완료 시간과 동일 처리
+        item.complete_at = item.due_date  # 마감 기한을 complete_at 완료 시간과 동일 처리
 
     Checklistitem.objects.bulk_update(expired_items, ['status', 'complete_at'])
 
