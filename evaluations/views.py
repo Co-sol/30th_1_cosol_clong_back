@@ -116,7 +116,6 @@ class GroupEvalAverageView(APIView):  # 평점 조회
         }, status=status.HTTP_200_OK)
 
 # 그룹 일지
-
 # 청소 평가 리스트 조회
 class PendingReviewListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -371,6 +370,12 @@ class ChecklistFeedbackView(APIView):
                 status_updated = True
                 new_status = review.review_status
 
+        # 평가 시점 변경
+        if status_updated:
+            checklist_item = review.checklist_item_id
+            checklist_item.complete_at = review.review_at  # 또는 timezone.now()로 별도 기록
+            checklist_item.save()
+
         review.save()
 
         # 관련 정보 가져오기
@@ -395,7 +400,6 @@ class ChecklistFeedbackView(APIView):
                 "complete_at": complete_at,
             }
         }, status=status.HTTP_200_OK)
-    
 
 # 청소 평가 기록 조회
 class GroupLogView(APIView):
