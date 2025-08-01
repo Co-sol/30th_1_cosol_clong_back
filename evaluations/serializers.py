@@ -28,10 +28,10 @@ class GroupEvalCreateSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S", input_formats=["%Y-%m-%dT%H:%M:%S"])  # 시간 포함 필수
     evaluations = EvaluationSerializer(many=True)
 
-    def validate_created_at(self, value):
-        if value.weekday() != 6:  # 일요일만 허용
-            raise serializers.ValidationError("평가는 일요일에만 가능합니다.")
-        return value
+    #def validate_created_at(self, value):
+    #    if value.weekday() != 6:  # 일요일만 허용
+    #        raise serializers.ValidationError("평가는 일요일에만 가능합니다.")
+    #    return value
 
     def create(self, validated_data):
         created_at = validated_data['created_at']
