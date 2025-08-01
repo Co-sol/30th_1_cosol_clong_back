@@ -59,7 +59,7 @@ class EvaluationStatusView(APIView):
             "success": True,
             "message": "유저의 평가 상태를 반환합니다.",
             "data": {
-                "user_id": request.user.email,
+                "email": request.user.email,
                 "evaluation_status": request.user.evaluation_status
             }
         }, status=status.HTTP_200_OK)
