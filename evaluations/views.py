@@ -22,6 +22,49 @@ from datetime import date as date_class
 from users.models import User
 import math
 
+def update_user_profiles_by_group(group):
+    today = timezone.now().date()
+    start_of_week = today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
+    end_of_week = start_of_week + timedelta(days=6)
+
+    members = User.objects.filter(group=group)
+    if not members.exists():
+        return
+
+    member_evaluations = []
+    for member in members:
+        evaluations = GroupEval.objects.filter(
+            target_email=member,
+            created_at__range=[
+                timezone.make_aware(timezone.datetime.combine(start_of_week, timezone.datetime.min.time())),
+                timezone.make_aware(timezone.datetime.combine(end_of_week, timezone.datetime.max.time()))
+            ]
+        )
+
+        if evaluations.exists():
+            average_rating = evaluations.aggregate(Avg("rating"))["rating__avg"]
+            member_evaluations.append({"user": member, "avg_rating": average_rating})
+        else:
+            member_evaluations.append({"user": member, "avg_rating": 0})
+
+    # Sort members by average rating in descending order
+    sorted_members = sorted(member_evaluations, key=lambda x: x["avg_rating"], reverse=True)
+
+    # Update profile rankings with tie handling
+    rank = 0
+    last_rating = -1
+    for i, data in enumerate(sorted_members):
+        user = data["user"]
+        if data["avg_rating"] == 0:
+            user.profile = 0
+        else:
+            if data["avg_rating"] != last_rating:
+                rank = i
+                last_rating = data["avg_rating"]
+            user.profile = 4 - rank  # Rank from 4 (1st) down to 1 (4th)
+
+        user.save()
+
 class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
     permission_classes = [IsAuthenticated]
     def post(self, request):
@@ -34,6 +77,9 @@ class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
              # User의 evaluation_status를 true로 업데이트
             request.user.evaluation_status = True
             request.user.save()
+
+            # Update user profiles
+            update_user_profiles_by_group(group)
 
             response_serializer = GroupEvalResponseSerializer(evals, many=True)
             return Response({
