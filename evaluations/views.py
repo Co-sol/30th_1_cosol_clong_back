@@ -291,9 +291,11 @@ class UserChecklistStatusView(APIView):
                     "id": item.email.id,
                     "name": item.email.name,
                     "email": item.email.email
-                }
-            }
+                },
+                "good_count": review.good_count if review else 0,
+                "bad_count": review.bad_count if review else 0
 
+            }
             if review:
                 data["review_id"] = review.review_id  # ✅ review_id 포함
 
@@ -322,7 +324,7 @@ class UserChecklistStatusView(APIView):
             "checklist_item_id__checklist_id__space_id",
             "checklist_item_id__email"
         )
-        completed = [get_info(r.checklist_item_id) for r in completed_reviews]
+        completed = [get_info(r.checklist_item_id, review=r) for r in completed_reviews]
 
         # 미션 실패
         rejected_reviews = ChecklistReview.objects.filter(
@@ -343,7 +345,7 @@ class UserChecklistStatusView(APIView):
             "email"
         )
 
-        failed = [get_info(r.checklist_item_id) for r in rejected_reviews] + [get_info(item) for item in overdue_items]
+        failed = [get_info(r.checklist_item_id, review=r) for r in rejected_reviews] + [get_info(item) for item in overdue_items]
 
         return Response({
             "status": 200,
@@ -421,7 +423,8 @@ class ChecklistFeedbackView(APIView):
 
         group_members = group.members.all()
         total_members = group_members.count()
-        
+
+
         max_feedback_count = total_members - 1  # 평가 가능한 인원 수
         majority_count = math.ceil(max_feedback_count / 2)  # 과반수 기준
 
