@@ -30,6 +30,11 @@ class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
         serializer = GroupEvalCreateSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
             evals = serializer.save()
+
+             # User의 evaluation_status를 true로 업데이트
+            request.user.evaluation_status = True
+            request.user.save()
+
             response_serializer = GroupEvalResponseSerializer(evals, many=True)
             return Response({
                 "status": 201,
@@ -37,12 +42,28 @@ class GroupEvalCreateView(APIView):  # 그룹원 평가 진행
                 "message": "그룹 평가가 성공적으로 등록되었습니다.",
                 "data": response_serializer.data
             }, status=status.HTTP_201_CREATED)
-        
         return Response({
             "status": 400,
             "success": False,
             "message": f"유효성 검사를 실패했습니다."
         }, status=status.HTTP_400_BAD_REQUEST)
+
+# 해당 그룹원이 평가를 진행했는지 알려주는 로직
+# user의 evaluation_status 반환    
+class EvaluationStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": "유저의 평가 상태를 반환합니다.",
+            "data": {
+                "user_id": request.user.id,
+                "evaluation_status": request.user.evaluation_status
+            }
+        }, status=status.HTTP_200_OK)
+
 
 class GroupEvalAverageView(APIView):  # 평점 조회
     permission_classes = [IsAuthenticated]
